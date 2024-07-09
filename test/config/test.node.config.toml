@@ -165,7 +165,8 @@ SequencerPrivateKey = {}
 ForcedGas = 0
 PrivateKeys = [
 	{Path = "/pk/sequencer.keystore", Password = "testonly"},
-	{Path = "/pk/aggregator.keystore", Password = "testonly"}
+	{Path = "/pk/aggregator.keystore", Password = "testonly"},
+	{Path = "/pk/blob.keystore", Password = "testonly"}
 ]
 
 [L2GasPriceSuggester]

@@ -86,6 +86,14 @@ build-docker: ## Builds a docker image with the node binary
 build-docker-nc: ## Builds a docker image with the node binary - but without build cache
 	docker build --no-cache=true -t zkevm-node -f ./Dockerfile .
 
+.PHONY: build-docker
+build-docker: ## Builds a docker image with the zkblob binary
+	docker build -t zkblob-sender -f ./blob/zkblobsender/Dockerfile .
+
+.PHONY: build-zkblob
+build-zkblob: ## Builds the zkblob binary locally into ./dist
+	$(GOENVVARS) go build -o $(GOBIN)/zkblob-sender ./blob/zkblobsender
+
 .PHONY: run-rpc
 run-rpc: ## Runs all the services needed to run a local zkEVM RPC node
 	docker-compose up -d zkevm-state-db zkevm-pool-db
