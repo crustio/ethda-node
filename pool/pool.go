@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/0xPolygonHermez/zkevm-node/blob"
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	"math/big"
 	"strconv"
 	"sync"
@@ -52,6 +54,8 @@ type Pool struct {
 	gasPrices               GasPrices
 	gasPricesMux            *sync.RWMutex
 	effectiveGasPrice       *EffectiveGasPrice
+
+	blobDB db.BlobDB
 }
 
 type preExecutionResponse struct {
@@ -72,6 +76,10 @@ type GasPrices struct {
 
 // NewPool creates and initializes an instance of Pool
 func NewPool(cfg Config, batchConstraintsCfg state.BatchConstraintsCfg, s storage, st stateInterface, chainID uint64, eventLog *event.EventLog) *Pool {
+	blobDB, err := db.NewBlobDB("/blob/sqlite.db")
+	if err != nil {
+		panic(err)
+	}
 	startTimestamp := time.Now()
 	p := &Pool{
 		cfg:                     cfg,
@@ -87,6 +95,7 @@ func NewPool(cfg Config, batchConstraintsCfg state.BatchConstraintsCfg, s storag
 		gasPrices:               GasPrices{0, 0},
 		gasPricesMux:            new(sync.RWMutex),
 		effectiveGasPrice:       NewEffectiveGasPrice(cfg.EffectiveGasPrice),
+		blobDB:                  blobDB,
 	}
 	p.refreshGasPrices()
 	go func(cfg *Config, p *Pool) {
@@ -181,9 +190,27 @@ func (p *Pool) StartPollingMinSuggestedGasPrice(ctx context.Context) {
 
 // AddTx adds a transaction to the pool with the pending state
 func (p *Pool) AddTx(ctx context.Context, tx types.Transaction, ip string) error {
-	poolTx := NewTransaction(tx, ip, false)
+	filterTx := blob.FilterLegacyTx(tx)
+
+	poolTx := NewTransaction(*filterTx, ip, false)
 	if err := p.validateTx(ctx, *poolTx); err != nil {
 		return err
+	}
+
+	if tx.Type() == types.BlobTxType {
+		if err := p.validateBlobTx(ctx, tx); err != nil {
+			return fmt.Errorf("validate blob tx: %w", err)
+		}
+
+		b, err := tx.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		hash := blob.BlobTxToLegacyTx(tx).Hash().Hex()
+		err = p.blobDB.Put([]byte(fmt.Sprintf("blob-%s", hash)), b)
+		if err != nil {
+			return err
+		}
 	}
 
 	return p.StoreTx(ctx, tx, ip, false)

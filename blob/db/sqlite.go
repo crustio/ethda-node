@@ -1,7 +1,11 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
 	_ "modernc.org/sqlite"
 )
@@ -119,4 +123,30 @@ func (s *SqliteBlobDB) HasFrom(from uint64) (bool, error) {
 // TODO Close db when pool is closed
 func (s *SqliteBlobDB) Close() {
 	s.db.Close()
+}
+
+func (s *SqliteBlobDB) GetBlobTx(ctx context.Context, hash common.Hash) (*ethTypes.Transaction, error) {
+	existed, err := s.IsBlob(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if existed {
+		data, err := s.Get([]byte(fmt.Sprintf("blob-%s", hash.Hex())))
+		if err != nil {
+			return nil, err
+		}
+		tx := new(ethTypes.Transaction)
+		if err := tx.UnmarshalBinary(data); err != nil {
+			return nil, err
+		}
+
+		return tx, nil
+	}
+
+	return nil, nil
+}
+
+func (s *SqliteBlobDB) IsBlob(ctx context.Context, hash common.Hash) (bool, error) {
+	return s.Has([]byte(fmt.Sprintf("blob-%s", hash.Hex())))
 }

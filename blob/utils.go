@@ -24,15 +24,15 @@ func BlobTxToLegacyTx(tx types.Transaction) *types.Transaction {
 	})
 }
 
-func FilterLegacyTx(tx types.Transaction) types.Transaction {
+func FilterLegacyTx(tx types.Transaction) *types.Transaction {
 	if tx.Type() == types.LegacyTxType {
-		return tx
+		return &tx
 	}
 
 	v, r, s := tx.RawSignatureValues()
 	newV := 2*tx.ChainId().Uint64() + 35 + v.Uint64()
 
-	return *types.NewTx(&types.LegacyTx{
+	return types.NewTx(&types.LegacyTx{
 		Nonce:    tx.Nonce(),
 		To:       tx.To(),
 		Value:    tx.Value(),

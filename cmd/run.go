@@ -501,6 +501,13 @@ func runJSONRPCServer(c config.Config, etherman *etherman.Client, chainID uint64
 		})
 	}
 
+	if _, ok := apis[jsonrpc.APIETHDA]; ok {
+		services = append(services, jsonrpc.Service{
+			Name:    jsonrpc.APIETHDA,
+			Service: jsonrpc.NewETHDAEndpoints(c.SequenceSender.PrivateKey.Path, c.SequenceSender.PrivateKey.Password, st),
+		})
+	}
+
 	if err := jsonrpc.NewServer(c.RPC, chainID, pool, st, storage, services).Start(); err != nil {
 		log.Fatal(err)
 	}

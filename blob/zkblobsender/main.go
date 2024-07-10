@@ -5,6 +5,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	blobjsonrpc "github.com/0xPolygonHermez/zkevm-node/blob/jsonrpc"
+	"github.com/gorilla/mux"
+	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -190,6 +194,37 @@ func start(cliCtx *cli.Context) error {
 	}
 
 	seqSender.Start(cliCtx.Context)
+
+	bs := blobjsonrpc.NewBlobServer(st, seqSender.blobDB)
+
+	r := mux.NewRouter()
+
+	r.Handle("/eth/v1/beacon/blob_sidecars/{block_id}", http.HandlerFunc(bs.HandleGetBlobSidecars))
+	r.Handle("/eth/v2/beacon/blocks/{block_id}", http.HandlerFunc(bs.HandleGetBlocks))
+
+	address := fmt.Sprintf("%s:%d", "localhost", 6666)
+
+	lis, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Errorf("failed to create tcp listener: %v", err)
+		return err
+	}
+
+	srv := &http.Server{
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+	}
+	log.Infof("http server started: %s", address)
+	if err := srv.Serve(lis); err != nil {
+		if err == http.ErrServerClosed {
+			log.Infof("http server stopped")
+			return nil
+		}
+		log.Errorf("closed http connection: %v", err)
+		return err
+	}
 
 	return nil
 }

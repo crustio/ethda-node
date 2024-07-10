@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	blobtypes "github.com/0xPolygonHermez/zkevm-node/blob/types"
 	"github.com/0xPolygonHermez/zkevm-node/hex"
 	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum/common"
@@ -555,6 +556,12 @@ type Transaction struct {
 	Type        ArgUint64       `json:"type"`
 	Receipt     *Receipt        `json:"receipt,omitempty"`
 	L2Hash      *common.Hash    `json:"l2Hash,omitempty"`
+
+	BlobHashes           []common.Hash            `json:"blobVersionedHashes"`
+	Sidecar              *blobtypes.BlobTxSidecar `json:"sidecar"`
+	MaxFeePerBlobGas     ArgBig                   `json:"maxFeePerBlobGas"`
+	MaxPriorityFeePerGas ArgBig                   `json:"maxPriorityFeePerGas"`
+	MaxFeePerGas         ArgBig                   `json:"maxFeePerGas"`
 }
 
 // CoreTx returns a geth core type Transaction
@@ -578,6 +585,15 @@ func NewTransaction(
 	receipt *types.Receipt,
 	includeReceipt bool, l2Hash *common.Hash,
 ) (*Transaction, error) {
+	btx, err := GetBlobTransaction(tx.Hash(), receipt, includeReceipt, l2Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if btx != nil {
+		return btx, nil
+	}
+
 	v, r, s := tx.RawSignatureValues()
 	from, _ := state.GetSender(tx)
 

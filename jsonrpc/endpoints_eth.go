@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/0xPolygonHermez/zkevm-node/blob"
 	"math/big"
 	"net/http"
 	"strings"
@@ -973,7 +974,7 @@ func (e *EthEndpoints) tryToAddTxToPool(input, ip string) (interface{}, types.Er
 	}
 	log.Infof("TX added to the pool: %v", tx.Hash().Hex())
 
-	return tx.Hash().Hex(), nil
+	return blob.FilterLegacyTx(*tx).Hash().Hex(), nil
 }
 
 // UninstallFilter uninstalls a filter with given id.
