@@ -2,7 +2,6 @@ package blob
 
 import (
 	"bytes"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -18,6 +17,12 @@ const (
 	FlagCfg = "zkcfg"
 )
 
+// TODO: move das config here? now in zkevm-node config
+type DasConfig struct {
+	// blob das address hex string
+	ToAddress string `mapstructure:"ToAddress"`
+}
+
 // Config provide fields to configure the blob
 type ZkBlobSenderConfig struct {
 	// WaitPeriodSendZkblob is the time the zkblob sender waits until
@@ -28,9 +33,6 @@ type ZkBlobSenderConfig struct {
 
 	// GasOffset
 	GasOffset uint64 `mapstructure:"GasOffset"`
-
-	// blob to address hex string
-	DasAddress string `mapstructure:"DasAddress"`
 
 	// zkblob contract address hex string
 	ZkBlobAddress string `mapstructure:"ZkBlobAddress"`
@@ -100,8 +102,6 @@ func Load(ctx *cli.Context) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("-------------> ", *cfg)
 
 	return cfg, nil
 }

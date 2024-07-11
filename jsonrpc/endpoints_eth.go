@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/0xPolygonHermez/zkevm-node/blob"
 	"math/big"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/0xPolygonHermez/zkevm-node/blob"
+	"github.com/0xPolygonHermez/zkevm-node/blob/eip4844"
+	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 
 	"github.com/0xPolygonHermez/zkevm-node/hex"
 	"github.com/0xPolygonHermez/zkevm-node/jsonrpc/client"
@@ -211,6 +214,29 @@ func (e *EthEndpoints) GasPrice() (interface{}, types.Error) {
 		return "0x0", nil
 	}
 	return hex.EncodeUint64(gasPrices.L2GasPrice), nil
+}
+
+func (e *EthEndpoints) BlobBaseFee() (interface{}, types.Error) {
+	lastL2Block, err := e.state.GetLastL2Block(context.Background(), nil)
+	if err != nil {
+		log.Warnf("BlobBaseFee: Failed to get last L2 block: %v", err)
+		return hex.EncodeUint64(fee.MinBlobBaseFee), nil
+	}
+
+	excess := lastL2Block.Header().ExcessBlobGas
+
+	if excess == nil {
+		log.Warn("BlobBaseFee: lastL2Block.Header().ExcessBlobGas is nil, check blob base gas calculate logic")
+		return hex.EncodeUint64(fee.MinBlobBaseFee), nil
+	}
+
+	blobFee := eip4844.CalcBlobFee(*excess)
+	if blobFee.Cmp(big.NewInt(fee.MinBlobBaseFee)) == -1 {
+		log.Debug("BlobFee is less than MinBlobBaseFee: ", blobFee.Uint64())
+		return hex.EncodeUint64(fee.MinBlobBaseFee), nil
+	}
+
+	return hex.EncodeBig(blobFee), nil
 }
 
 func (e *EthEndpoints) getPriceFromSequencerNode() (interface{}, types.Error) {

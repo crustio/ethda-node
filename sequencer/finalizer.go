@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-data-streamer/datastreamer"
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	ethermanTypes "github.com/0xPolygonHermez/zkevm-node/etherman"
 	"github.com/0xPolygonHermez/zkevm-node/event"
 	"github.com/0xPolygonHermez/zkevm-node/hex"
@@ -86,6 +87,9 @@ type finalizer struct {
 	streamServer      *datastreamer.StreamServer
 	dataToStream      chan interface{}
 	dataToStreamCount atomic.Int32
+
+	// TODO remove this
+	blobDB db.BlobDB
 }
 
 // newFinalizer returns a new instance of Finalizer.
@@ -104,6 +108,10 @@ func newFinalizer(
 	workerReadyTxsCond *timeoutCond,
 	dataToStream chan interface{},
 ) *finalizer {
+	sqliteDB, err := db.NewBlobDB("/blob/sqlite.db")
+	if err != nil {
+		panic(err)
+	}
 	f := finalizer{
 		cfg:              cfg,
 		isSynced:         isSynced,
@@ -146,6 +154,8 @@ func newFinalizer(
 		// stream server
 		streamServer: streamServer,
 		dataToStream: dataToStream,
+
+		blobDB: sqliteDB,
 	}
 
 	f.l2BlockReorg.Store(false)

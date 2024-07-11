@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	"github.com/0xPolygonHermez/zkevm-node/blob/eip4844"
 	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum/params"
@@ -13,7 +14,7 @@ const (
 	MinBlobBaseFee = 1000000000
 )
 
-func CalcBlobGasUsed(ctx context.Context, s stateInterface, pool txPool, batchNumber uint64) uint64 {
+func CalcBlobGasUsed(ctx context.Context, s stateInterface, blobDB db.BlobDB, batchNumber uint64) uint64 {
 	batch, err := s.GetBatchByNumber(ctx, batchNumber, nil)
 	if err != nil {
 		return 0 // TODO handle error
@@ -26,7 +27,7 @@ func CalcBlobGasUsed(ctx context.Context, s stateInterface, pool txPool, batchNu
 	var count uint64 = 0
 	for _, btx := range brb.Blocks {
 		for _, tx := range btx.Transactions {
-			if ok, _ := pool.IsBlob(ctx, tx.Tx.Hash()); ok {
+			if ok, _ := blobDB.IsBlob(ctx, tx.Tx.Hash()); ok {
 				count++
 			}
 		}

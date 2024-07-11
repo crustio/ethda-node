@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/0xPolygonHermez/zkevm-node/blob"
-	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/0xPolygonHermez/zkevm-node/blob"
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 
 	"github.com/0xPolygonHermez/zkevm-node/event"
 	"github.com/0xPolygonHermez/zkevm-node/log"
@@ -213,7 +214,7 @@ func (p *Pool) AddTx(ctx context.Context, tx types.Transaction, ip string) error
 		}
 	}
 
-	return p.StoreTx(ctx, tx, ip, false)
+	return p.StoreTx(ctx, *filterTx, ip, false)
 }
 
 // StoreTx adds a transaction to the pool with the pending state

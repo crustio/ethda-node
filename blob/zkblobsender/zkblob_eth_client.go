@@ -32,7 +32,7 @@ var (
 type ZkblobETHClient struct {
 	chainID  uint64
 	auth     map[common.Address]*bind.TransactOpts // empty in case of read-only client
-	authKeys map[common.Address]*ecdsa.PrivateKey  // TODO
+	authKeys map[common.Address]*ecdsa.PrivateKey
 
 	zkBlob         *zkblob.Zkblob
 	zkBlobDeployed bool
@@ -188,13 +188,13 @@ func (zkc *ZkblobETHClient) BuildPostZkBlobTxData(sender common.Address, batchNu
 	}
 
 	// log
-	log.Infof("Build Batch PostZkBlob transaction, batch number from %d to %d, to zkblob address: %s", batchNumbers[0], batchNumbers[len(batchNumbers)-1], zkc.blobCfg.ZkBlobAddress)
+	log.Infof("Build Batch PostZkBlob transaction, batch number from %d to %d, to zkblob address: %s, batchNums: %v, hashes: %v", batchNumbers[0], batchNumbers[len(batchNumbers)-1], zkc.blobCfg.ZkBlobAddress, batchNumbers, hashes)
 
 	return tx.To(), tx.Data(), nil
 }
 
 func (zkc *ZkblobETHClient) loadAuthFromKeyStore(path, password string) (*bind.TransactOpts, error) {
-	auth,  key, err := zkc.etherman.LoadAuthFromKeyStore(path, password)
+	auth, key, err := zkc.etherman.LoadAuthFromKeyStore(path, password)
 	if err != nil {
 		return nil, err
 	}

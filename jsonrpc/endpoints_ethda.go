@@ -13,6 +13,7 @@ import (
 	"github.com/0xPolygonHermez/zkevm-node/blob"
 	"github.com/0xPolygonHermez/zkevm-node/jsonrpc/types"
 	"github.com/0xPolygonHermez/zkevm-node/log"
+	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -53,14 +54,27 @@ func (e *ETHDAEndpoints) GetProofByHash(hash types.ArgHash) (interface{}, types.
 		return RPCErrorResponse(types.DefaultErrorCode, fmt.Sprintf("couldn't load receipt for tx %v", hash.Hash().String()), err, true)
 	}
 
-	block, err := e.state.GetL2BlockByNumber(ctx, receipt.BlockNumber.Uint64(), nil)
+	bn, err := e.state.BatchNumberByL2BlockNumber(ctx, receipt.BlockNumber.Uint64(), nil)
+	if err != nil {
+		return RPCErrorResponse(types.DefaultErrorCode, fmt.Sprintf("couldn't load batch number for tx %v", hash.Hash().String()), err, true)
+	}
+	batch, err := e.state.GetBatchByNumber(ctx, bn, nil)
 	if err != nil {
 		return RPCErrorResponse(types.DefaultErrorCode, fmt.Sprintf("couldn't load batch for tx %v", hash.Hash().String()), err, true)
 	}
 
+	batchNumber := uint64(bn)
+
 	hashes := []common.Hash{}
-	for _, tx := range block.Transactions() {
-		hashes = append(hashes, tx.Hash())
+	brb, er := state.DecodeBatchV2(batch.BatchL2Data)
+	if er != nil {
+		return RPCErrorResponse(types.DefaultErrorCode, "error decode BatchL2Data", er, true)
+	}
+
+	for _, btx := range brb.Blocks {
+		for _, tx := range btx.Transactions {
+			hashes = append(hashes, tx.Tx.Hash())
+		}
 	}
 
 	if len(hashes) == 0 {
@@ -73,7 +87,7 @@ func (e *ETHDAEndpoints) GetProofByHash(hash types.ArgHash) (interface{}, types.
 	}
 
 	proof := &blob.ProofInfo{
-		BatchNumber: receipt.BlockNumber.Uint64(),
+		BatchNumber: uint64(batchNumber),
 		Proof:       []common.Hash{},
 	}
 
@@ -94,7 +108,7 @@ func (e *ETHDAEndpoints) GetProofByHash(hash types.ArgHash) (interface{}, types.
 		proof.Proof = append(proof.Proof, common.BytesToHash(h))
 	}
 
-	log.Debugf("get proof of batch number: %d, result hash: %s, result proof: %v", receipt.BlockNumber, hash.Hash().Hex(), proof.Proof)
+	log.Debugf("get proof of batch number: %d, result hash: %s, result proof: %v", batchNumber, hash.Hash().Hex(), proof.Proof)
 
 	return proof, nil
 }

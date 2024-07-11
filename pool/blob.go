@@ -3,12 +3,13 @@ package pool
 import (
 	"context"
 	"fmt"
+	"math/big"
+
 	"github.com/0xPolygonHermez/zkevm-node/blob"
 	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 	"github.com/0xPolygonHermez/zkevm-node/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 func GetBlobTxSender(tx types.Transaction) (common.Address, error) {
@@ -29,8 +30,8 @@ func (p *Pool) validateBlobTx(ctx context.Context, tx types.Transaction) error {
 
 	log.Infof("from: ", from.Hex())
 
-	// Check `to` address
-	toAddress := common.HexToAddress("")
+	// Check das address
+	toAddress := common.HexToAddress(p.cfg.DasAddress)
 	if tx.To() == nil || *tx.To() != toAddress {
 		return fmt.Errorf("blob transaction to address expect %v but got %v", toAddress, tx.To())
 	}

@@ -47,6 +47,9 @@ type Config struct {
 	// TxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transaction variants. The unit is ether. 0 means no cap.
 	TxFeeCap float64 `mapstructure:"TxFeeCap"`
+
+	// TODO remove this
+	DasAddress string `mapstructure:"DasAddress"`
 }
 
 // EffectiveGasPriceCfg contains the configuration properties for the effective gas price

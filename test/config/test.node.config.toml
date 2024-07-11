@@ -58,6 +58,7 @@ GlobalQueue = 0
 	Port = "5432"
 	EnableLog = false
 	MaxConns = 200
+DasAddress = "0x0" ## TODO remove this
 
 [Etherman]
 URL = "http://zkevm-mock-l1-network:8545"
