@@ -38,6 +38,7 @@ DefaultMinGasPriceAllowed = 1000000000
 MinAllowedGasPriceInterval = "5m"
 PollMinAllowedGasPriceInterval = "15s"
 AccountQueue = 0
+DasAddress = "0x0" ## TODO remove this
 GlobalQueue = 0
 	[Pool.EffectiveGasPrice]
 		Enabled = false
@@ -58,7 +59,6 @@ GlobalQueue = 0
 	Port = "5432"
 	EnableLog = false
 	MaxConns = 200
-DasAddress = "0x0" ## TODO remove this
 
 [Etherman]
 URL = "http://zkevm-mock-l1-network:8545"
