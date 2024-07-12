@@ -715,4 +715,4 @@ services:
     command:
       - "/bin/sh"
       - "-c"
-      - "/app/zkblob-sender run --network custom --custom-network-file /app/genesis.json --cfg /app/config.toml" --zkcfg /app/blob.config.toml
+      - "/app/zkblob-sender run --network custom --custom-network-file /app/genesis.json --cfg /app/config.toml --zkcfg /app/blob.config.toml"
