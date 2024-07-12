@@ -5,12 +5,13 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	blobjsonrpc "github.com/0xPolygonHermez/zkevm-node/blob/jsonrpc"
-	"github.com/gorilla/mux"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	blobjsonrpc "github.com/0xPolygonHermez/zkevm-node/blob/jsonrpc"
+	"github.com/gorilla/mux"
 
 	dataCommitteeClient "github.com/0xPolygon/cdk-data-availability/client"
 	"github.com/0xPolygonHermez/zkevm-node"
@@ -193,7 +194,7 @@ func start(cliCtx *cli.Context) error {
 		log.Fatal(err)
 	}
 
-	seqSender.Start(cliCtx.Context)
+	go seqSender.Start(cliCtx.Context)
 
 	bs := blobjsonrpc.NewBlobServer(st, seqSender.blobDB)
 
@@ -202,7 +203,7 @@ func start(cliCtx *cli.Context) error {
 	r.Handle("/eth/v1/beacon/blob_sidecars/{block_id}", http.HandlerFunc(bs.HandleGetBlobSidecars))
 	r.Handle("/eth/v2/beacon/blocks/{block_id}", http.HandlerFunc(bs.HandleGetBlocks))
 
-	address := fmt.Sprintf("%s:%d", "localhost", 6666)
+	address := fmt.Sprintf("%s:%d", "0.0.0.0", 6666)
 
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
