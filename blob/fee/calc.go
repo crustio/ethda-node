@@ -36,12 +36,8 @@ func CalcBlobGasUsed(ctx context.Context, s stateInterface, blobDB db.BlobDB, ba
 	return uint64(count * params.BlobTxBlobGasPerBlob)
 }
 
-func GetL2BlobFeeCap(excessBlobGas *uint64) *big.Int {
-	if excessBlobGas == nil {
-		return big.NewInt(MinBlobBaseFee)
-	}
-
-	blobFee := eip4844.CalcBlobFee(*excessBlobGas)
+func GetL2BlobFeeCap(excessBlobGas uint64) *big.Int {
+	blobFee := eip4844.CalcBlobFee(excessBlobGas)
 	if blobFee.Cmp(big.NewInt(MinBlobBaseFee)) == -1 {
 		blobFee = big.NewInt(MinBlobBaseFee)
 	}

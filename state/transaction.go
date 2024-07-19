@@ -220,9 +220,6 @@ func (s *State) StoreL2Block(ctx context.Context, batchNumber uint64, l2Block *P
 	if err != nil {
 		return common.Hash{}, err
 	}
-	// if prevL2Block == nil {
-	// 	return common.Hash{}, fmt.Errorf("l2 block %d not found", l2Block.BlockNumber-1)
-	// }
 
 	forkID := s.GetForkIDByBatchNumber(batchNumber)
 
@@ -240,22 +237,7 @@ func (s *State) StoreL2Block(ctx context.Context, batchNumber uint64, l2Block *P
 		GasUsed:    l2Block.GasUsed,
 		GasLimit:   gasLimit,
 		Time:       l2Block.Timestamp,
-		// BlobGasUsed: &l2Block.BlobGasUsed, // update blob gas used
 	}
-
-	// update excess blob gas
-	// var (
-	// 	parentExcessBlobGas uint64
-	// 	parentBlobGasUsed   uint64
-	// )
-	// if prevL2Block.ExcessBlobGas() != nil {
-	// 	parentExcessBlobGas = *prevL2Block.ExcessBlobGas()
-	// 	parentBlobGasUsed = *prevL2Block.BlobGasUsed()
-	// }
-	// excessBlobGas := eip4844.CalcExcessBlobGas(parentExcessBlobGas, parentBlobGasUsed)
-	// header.ExcessBlobGas = &excessBlobGas
-
-	// log.Info("New Block BlobGasUsed and blob count: ", l2Block.BlobGasUsed, l2Block.BlobGasUsed/params.BlobTxBlobGasPerBlob)
 
 	l2Header := NewL2Header(header)
 

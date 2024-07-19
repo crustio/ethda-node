@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -26,6 +28,11 @@ func NewBlobDB(path string) (BlobDB, error) {
 	CREATE TABLE IF NOT EXISTS blobs (
 		from_batch_num INTEGER NOT NULL UNIQUE,
 		to_batch_num INTEGER
+	);
+	CREATE TABLE IF NOT EXISTS blobgas (
+		block_num INTEGER NOT NULL UNIQUE,
+		blob_gas_used INTEGER NOT NULL,
+		excess_blob_gas INTEGER NOT NULL
 	);
 	`)
 	if err != nil {
@@ -149,4 +156,57 @@ func (s *SqliteBlobDB) GetBlobTx(ctx context.Context, hash common.Hash) (*ethTyp
 
 func (s *SqliteBlobDB) IsBlob(ctx context.Context, hash common.Hash) (bool, error) {
 	return s.Has([]byte(fmt.Sprintf("blob-%s", hash.Hex())))
+}
+
+func (s *SqliteBlobDB) UpdateBlobGasUsedAndExcessBlobGas(blockNum uint64, gasUsed uint64, excessGas uint64) error {
+	sqlStmt := `
+	INSERT INTO blobgas (block_num, blob_gas_used, excess_blob_gas)
+	VALUES (?, ?, ?)
+	ON CONFLICT(block_num) DO UPDATE SET blob_gas_used = excluded.blob_gas_used, excess_blob_gas = excluded.excess_blob_gas
+	`
+
+	stmt, err := s.db.Prepare(sqlStmt)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(blockNum, gasUsed, excessGas)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var (
+	ErrBlobGasNotFound = errors.New("blob gas not found")
+)
+
+func (s *SqliteBlobDB) GetBlobGasUsedAndExcessBlobGas(blockNum uint64) (uint64, uint64, error) {
+	sqlStmt := `
+	SELECT block_num, blob_gas_used, excess_blob_gas
+	FROM blobgas
+	WHERE block_num = ?
+	`
+
+	rows, err := s.db.Query(sqlStmt, blockNum)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer rows.Close()
+
+	var num, gasUsed, excessGas uint64
+	for rows.Next() {
+		err = rows.Scan(&num, &gasUsed, &excessGas)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return 0, 0, ErrBlobGasNotFound
+			}
+
+			return 0, 0, err
+		}
+	}
+
+	return gasUsed, excessGas, nil
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-node/blob"
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	"github.com/0xPolygonHermez/zkevm-node/blob/eip4844"
 	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 
@@ -41,11 +42,18 @@ type EthEndpoints struct {
 	state    types.StateInterface
 	etherman types.EthermanInterface
 	storage  storageInterface
+
+	BlobDB db.BlobDB
 }
 
 // NewEthEndpoints creates an new instance of Eth
 func NewEthEndpoints(cfg Config, chainID uint64, p types.PoolInterface, s types.StateInterface, etherman types.EthermanInterface, storage storageInterface) *EthEndpoints {
-	e := &EthEndpoints{cfg: cfg, chainID: chainID, pool: p, state: s, etherman: etherman, storage: storage}
+	sqliteDB, err := db.NewBlobDB("/blob/sqlite.db")
+	if err != nil {
+		panic(err)
+	}
+
+	e := &EthEndpoints{cfg: cfg, chainID: chainID, pool: p, state: s, etherman: etherman, storage: storage, BlobDB: sqliteDB}
 	s.RegisterNewL2BlockEventHandler(e.onNewL2Block)
 
 	return e
@@ -223,14 +231,13 @@ func (e *EthEndpoints) BlobBaseFee() (interface{}, types.Error) {
 		return hex.EncodeUint64(fee.MinBlobBaseFee), nil
 	}
 
-	excess := lastL2Block.Header().ExcessBlobGas
-
-	if excess == nil {
-		log.Warn("BlobBaseFee: lastL2Block.Header().ExcessBlobGas is nil, check blob base gas calculate logic")
+	_, excess, err := e.BlobDB.GetBlobGasUsedAndExcessBlobGas(lastL2Block.NumberU64())
+	if err != nil && err != db.ErrBlobGasNotFound {
+		log.Errorf("BlobBaseFee: Failed to get blob gas used and excess blob gas: %v", err)
 		return hex.EncodeUint64(fee.MinBlobBaseFee), nil
 	}
 
-	blobFee := eip4844.CalcBlobFee(*excess)
+	blobFee := eip4844.CalcBlobFee(excess)
 	if blobFee.Cmp(big.NewInt(fee.MinBlobBaseFee)) == -1 {
 		log.Debug("BlobFee is less than MinBlobBaseFee: ", blobFee.Uint64())
 		return hex.EncodeUint64(fee.MinBlobBaseFee), nil

@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/0xPolygonHermez/zkevm-node/blob"
+	"github.com/0xPolygonHermez/zkevm-node/blob/db"
 	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 	"github.com/0xPolygonHermez/zkevm-node/log"
 	"github.com/ethereum/go-ethereum/common"
@@ -57,7 +58,13 @@ func (p *Pool) validateBlobTx(ctx context.Context, tx types.Transaction) error {
 		return fmt.Errorf("value is less than blob cost, %s < %s", tx.Value().String(), tx.Cost())
 	}
 
-	l2BlobFeeCap := fee.GetL2BlobFeeCap(lastL2Block.Header().ExcessBlobGas)
+	_, excess, err := p.blobDB.GetBlobGasUsedAndExcessBlobGas(lastL2Block.NumberU64())
+	if err != nil && err != db.ErrBlobGasNotFound {
+		log.Errorf("BlobBaseFee: Failed to get blob gas used and excess blob gas: %v", err)
+		return fmt.Errorf("failed to get blob gas used and excess blob gas: %v", err)
+	}
+
+	l2BlobFeeCap := fee.GetL2BlobFeeCap(excess)
 	if tx.BlobGasFeeCapIntCmp(l2BlobFeeCap) == -1 {
 		return fmt.Errorf("blob gas fee is less than base gas fee, %s < %s", tx.BlobGasFeeCap().String(), l2BlobFeeCap.String())
 	}

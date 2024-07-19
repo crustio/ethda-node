@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/0xPolygonHermez/zkevm-node/blob/eip4844"
+	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 	"github.com/0xPolygonHermez/zkevm-node/event"
 	"github.com/0xPolygonHermez/zkevm-node/hex"
 	"github.com/0xPolygonHermez/zkevm-node/log"
@@ -13,6 +15,7 @@ import (
 	stateMetrics "github.com/0xPolygonHermez/zkevm-node/state/metrics"
 	"github.com/0xPolygonHermez/zkevm-node/state/runtime/executor"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 // L2Block represents a wip or processed L2 block
@@ -376,8 +379,39 @@ func (f *finalizer) storeL2Block(ctx context.Context, l2Block *L2Block) error {
 		blockResponse.BlockNumber, l2Block.trackingNum, l2Block.batch.batchNumber, l2Block.deltaTimestamp, l2Block.timestamp, l2Block.l1InfoTreeExitRoot.L1InfoTreeIndex,
 		l2Block.l1InfoTreeExitRootChanged, len(l2Block.transactions), len(blockResponse.TransactionResponses), blockResponse.BlockHash, blockResponse.BlockInfoRoot.String())
 
-	// Calculate blob used gas
-	// blockResponse.BlobGasUsed = fee.CalcBlobGasUsed(ctx, f.stateIntf, f.blobDB, f.wipBatch.batchNumber)
+	// Calculate current BlobGasUsed
+	currentBlobGasUsed := fee.CalcBlobGasUsed(ctx, f.stateIntf, f.blobDB, f.wipBatch.batchNumber)
+
+	var (
+		parentExcessBlobGas uint64
+		parentBlobGasUsed   uint64
+	)
+
+	prevL2BlockNum := l2Block.trackingNum - 1
+	parentBlobGasUsed, parentExcessBlobGas, err := f.blobDB.GetBlobGasUsedAndExcessBlobGas(prevL2BlockNum)
+	firstBlobGasCalc := true
+	if prevL2BlockNum > 0 && err == nil { // parent block exists
+		firstBlobGasCalc = false
+
+		// Calculate current ExcessBlobGas by parent excess blob gas
+		excessBlobGas := eip4844.CalcExcessBlobGas(parentExcessBlobGas, parentBlobGasUsed)
+		err := f.blobDB.UpdateBlobGasUsedAndExcessBlobGas(blockResponse.BlockNumber, currentBlobGasUsed, excessBlobGas)
+		if err != nil {
+			return err
+		}
+
+		log.Info("New Block BlobGasUsed and blob count: ", currentBlobGasUsed, currentBlobGasUsed/params.BlobTxBlobGasPerBlob)
+	}
+
+	if firstBlobGasCalc {
+		excessBlobGas := eip4844.CalcExcessBlobGas(0, 0)
+		err := f.blobDB.UpdateBlobGasUsedAndExcessBlobGas(blockResponse.BlockNumber, currentBlobGasUsed, excessBlobGas)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Init Block BlobGasUsed and blob count: ", currentBlobGasUsed, currentBlobGasUsed/params.BlobTxBlobGasPerBlob)
+	}
 
 	// Wait until L2 block has been flushed/stored by the executor
 	startWaitFlushId := time.Now()
