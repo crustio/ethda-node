@@ -83,7 +83,7 @@ type ProcessBlockResponse struct {
 	TransactionResponses []*ProcessTransactionResponse
 	Logs                 []*types.Log
 	RomError_V2          error
-	BlobGasUsed          uint64
+	// BlobGasUsed          uint64
 }
 
 // ProcessTransactionResponse represents the response of a tx process.

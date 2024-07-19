@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/0xPolygonHermez/zkevm-node/blob/fee"
 	"github.com/0xPolygonHermez/zkevm-node/event"
 	"github.com/0xPolygonHermez/zkevm-node/hex"
 	"github.com/0xPolygonHermez/zkevm-node/log"
@@ -378,7 +377,7 @@ func (f *finalizer) storeL2Block(ctx context.Context, l2Block *L2Block) error {
 		l2Block.l1InfoTreeExitRootChanged, len(l2Block.transactions), len(blockResponse.TransactionResponses), blockResponse.BlockHash, blockResponse.BlockInfoRoot.String())
 
 	// Calculate blob used gas
-	blockResponse.BlobGasUsed = fee.CalcBlobGasUsed(ctx, f.stateIntf, f.blobDB, f.wipBatch.batchNumber)
+	// blockResponse.BlobGasUsed = fee.CalcBlobGasUsed(ctx, f.stateIntf, f.blobDB, f.wipBatch.batchNumber)
 
 	// Wait until L2 block has been flushed/stored by the executor
 	startWaitFlushId := time.Now()
