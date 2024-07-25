@@ -85,6 +85,8 @@ func GetBlobTransaction(hash common.Hash, receipt *types.Receipt, includeReceipt
 		panic(err)
 	}
 
+	defer sqliteDB.Close()
+
 	existed, err := sqliteDB.IsBlob(context.Background(), hash)
 	if err != nil {
 		return nil, err
